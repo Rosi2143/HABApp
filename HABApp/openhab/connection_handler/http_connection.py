@@ -138,7 +138,7 @@ def set_offline(log_msg=''):
 def is_disconnect_exception(e) -> bool:
     if not isinstance(e, (
             # aiohttp Exceptions
-            aiohttp.ClientPayloadError, aiohttp.ClientConnectorError,
+            aiohttp.ClientPayloadError, aiohttp.ClientConnectorError, aiohttp.ClientOSError,
 
             # aiohttp_sse_client Exceptions
             ConnectionRefusedError, ConnectionError, ConnectionAbortedError)):
@@ -227,7 +227,8 @@ async def start_connection():
     HTTP_SESSION = aiohttp.ClientSession(
         timeout=aiohttp.ClientTimeout(total=None),
         json_serialize=dump_json,
-        auth=auth
+        auth=auth,
+        read_bufsize=2**19  # 512k buffer
     )
 
     FUT_UUID = asyncio.ensure_future(try_uuid())
@@ -318,10 +319,12 @@ async def try_uuid():
     except Exception as e:
         if isinstance(e, (OpenhabDisconnectedError, OpenhabNotReadyYet)):
             log.info('... offline!')
-            FUT_UUID = asyncio.ensure_future(try_uuid())
         else:
             for line in traceback.format_exc().splitlines():
                 log.error(line)
+
+        # Keep trying to connect
+        FUT_UUID = asyncio.ensure_future(try_uuid())
         return None
 
     if IS_READ_ONLY:
