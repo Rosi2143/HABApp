@@ -158,7 +158,12 @@ class HSBTypeModel(ItemValueBase):
     @override
     @staticmethod
     def get_value_from_state(state: str) -> HSB:
-        return HSBTypeModel(type='HSB', value=state).get_value()
+        try:
+            # Try to parse the value normally
+            return HSBTypeModel(type='HSB', value=state).get_value()
+        except ValueError:
+            # Return black (0,0,0) as default for any invalid value
+            return HSB(0, 0, 0)
 
     # noinspection PyNestedDecorators
     @override
